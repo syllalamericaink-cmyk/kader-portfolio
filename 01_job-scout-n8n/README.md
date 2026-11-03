@@ -19,10 +19,11 @@ I look for remote, part-time work that I can do from Côte d'Ivoire. Most "remot
 - **Public APIs only.** No scraping behind logins and no bypassing anti-bot protection.
 - **Resilient sources.** Each HTTP node retries once and continues on error, so one source being down does not stop the run.
 - **Manual runs never hide offers.** Only scheduled runs mark offers as "sent", so testing does not hide offers from the next digest.
+- **Failure alerts.** A separate error workflow (`error-alert.json`) is set as the workflow's "Error workflow". If a run fails, it sends me the workflow name, the failed node, the error message and a link to the execution on Telegram. A "Test alert" button sends a sample alert to check the setup.
 - **Human in the loop.** The workflow never applies to a job. It only reports.
 
 ## Test result (3 November 2026, live run in n8n 2.44.5)
-230 offers were scanned and 5 were kept after scoring and the country filter. Running it a second time manually still showed the same offers, as intended.
+230 offers were scanned and 5 were kept after scoring and the country filter. Running it a second time manually still showed the same offers, as intended. The Telegram digest and the test alert were both delivered.
 
 ## How to use
 1. Import `job-scout.json` in n8n.
@@ -30,4 +31,4 @@ I look for remote, part-time work that I can do from Côte d'Ivoire. Most "remot
 3. Activate the workflow.
 4. Change the keywords or the minimum score at the top of the "Score & filter" Code node.
 
-Node types used: Manual and Schedule triggers, HTTP Request, Merge (4 inputs), Code (JavaScript), IF, Telegram.
+Node types used: Manual and Schedule triggers, Error Trigger, HTTP Request, Merge (4 inputs), Code (JavaScript), IF, Telegram.

@@ -1,0 +1,114 @@
+{
+  "name": "Error alert - Telegram",
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Africa/Abidjan"
+  },
+  "nodes": [
+    {
+      "id": "e-note",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -220
+      ],
+      "parameters": {
+        "width": 420,
+        "height": 160,
+        "content": "## Error alert\nSet as \"Error workflow\" in the settings of other workflows. When one of them fails, I get the workflow name, the failed node, the error message and a link to the execution on Telegram."
+      }
+    },
+    {
+      "id": "e-trigger",
+      "name": "On workflow error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "e-manual",
+      "name": "Test alert",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "e-sample",
+      "name": "Sample error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { workflow: { name: 'TEST - sample workflow' }, execution: { lastNodeExecuted: 'HTTP Request', mode: 'manual', error: { message: 'This is a test alert: no real failure.' } } } }];"
+      }
+    },
+    {
+      "id": "e-tg",
+      "name": "Alert on Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        300,
+        0
+      ],
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=<b>n8n workflow failed</b>\nWorkflow: {{ $json.workflow.name }}\nFailed node: {{ $json.execution.lastNodeExecuted || \"unknown\" }}\nError: {{ ($json.execution.error && $json.execution.error.message || \"no message\").slice(0, 300) }}\nMode: {{ $json.execution.mode }} | {{ $now.toFormat(\"yyyy-LL-dd HH:mm\") }}\n{{ $json.execution.url ? \"Open: \" + $json.execution.url : \"\" }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true,
+          "appendAttribution": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On workflow error": {
+      "main": [
+        [
+          {
+            "node": "Alert on Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test alert": {
+      "main": [
+        [
+          {
+            "node": "Sample error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample error": {
+      "main": [
+        [
+          {
+            "node": "Alert on Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
