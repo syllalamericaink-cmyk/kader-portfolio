@@ -1,0 +1,389 @@
+[
+  {
+    "id": "KdrJobScout00001",
+    "name": "Job Scout - Remote offers to Telegram",
+    "active": false,
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Africa/Abidjan",
+      "saveManualExecutions": true
+    },
+    "nodes": [
+      {
+        "id": "n-note",
+        "name": "About",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -80,
+          -260
+        ],
+        "parameters": {
+          "width": 520,
+          "height": 220,
+          "content": "## Job Scout\nEvery morning: pulls remote offers from 4 public job APIs, scores them against my profile (n8n / AI automation / AI training / video & motion / digital marketing), drops senior roles and offers restricted to other countries, removes offers already sent in the last 30 days, and sends the top 8 to Telegram.\n\nOnly public APIs are used (no scraping behind logins). Applying stays manual."
+        }
+      },
+      {
+        "id": "n-manual",
+        "name": "Run now",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          80
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "n-cron",
+        "name": "Every day 07:00",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          280
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 7 * * *"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "n-remotive",
+        "name": "Remotive",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          300,
+          -40
+        ],
+        "onError": "continueRegularOutput",
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "parameters": {
+          "url": "https://remotive.com/api/remote-jobs?limit=200",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (JobScout personal job search)"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        }
+      },
+      {
+        "id": "n-remoteok",
+        "name": "Remote OK",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          300,
+          120
+        ],
+        "onError": "continueRegularOutput",
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "parameters": {
+          "url": "https://remoteok.com/api",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (JobScout personal job search)"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        }
+      },
+      {
+        "id": "n-jobicy",
+        "name": "Jobicy",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          300,
+          280
+        ],
+        "onError": "continueRegularOutput",
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "parameters": {
+          "url": "https://jobicy.com/api/v2/remote-jobs?count=100",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (JobScout personal job search)"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        }
+      },
+      {
+        "id": "n-himalayas",
+        "name": "Himalayas",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          300,
+          440
+        ],
+        "onError": "continueRegularOutput",
+        "retryOnFail": true,
+        "maxTries": 2,
+        "waitBetweenTries": 3000,
+        "parameters": {
+          "url": "https://himalayas.app/jobs/api?limit=100",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (JobScout personal job search)"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        }
+      },
+      {
+        "id": "n-merge",
+        "name": "Merge sources",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          580,
+          180
+        ],
+        "parameters": {
+          "numberInputs": 4
+        }
+      },
+      {
+        "id": "n-code",
+        "name": "Score & filter",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          820,
+          180
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "// ===== Job Scout: normalise, score and filter remote job offers =====\n// Input: raw items from the Remotive, Remote OK, Jobicy and Himalayas APIs.\n// Output: one item { count, scanned, relevant, text (Telegram HTML), offers[] }.\n\nconst KEYWORDS = {\n  'n8n': 12, 'zapier': 8, 'make.com': 8, 'workflow automation': 8, 'automation': 6,\n  'no-code': 7, 'nocode': 7, 'low-code': 5, 'airtable': 5, 'ai agent': 6, 'llm': 4,\n  'prompt': 5, 'claude': 5, 'chatgpt': 4, 'ai trainer': 8, 'annotation': 5, 'rlhf': 5,\n  'french': 8, 'francophone': 8, 'video editor': 8, 'video editing': 6, 'motion': 8,\n  'capcut': 6, 'content creator': 7, 'social media': 6, 'community manager': 6,\n  'canva': 5, 'marketing assistant': 7, 'virtual assistant': 6, 'operations assistant': 6,\n  'next.js': 4, 'typescript': 3, 'junior': 5, 'entry level': 5, 'part-time': 5,\n  'part time': 5, 'freelance': 5, 'contract': 3, 'asynchronous': 5, 'async': 4,\n};\nconst TITLE_BONUS = ['n8n', 'automation', 'ai', 'video', 'motion', 'content', 'social',\n  'marketing', 'assistant', 'junior', 'french', 'no-code', 'editor'];\nconst SENIOR = ['senior', 'sr.', 'sr ', 'lead', 'principal', 'head of', 'director', 'staff ',\n  'vp ', 'chief', 'architect', 'manager'];\nconst SPOKEN = ['phone calls', 'cold call', 'on the phones', 'sales calls', 'fluent spoken english'];\nconst BLOCKED_GEO = ['usa', 'united states', 'us only', 'u.s.', 'canada', 'united kingdom', 'uk only',\n  'europe', 'germany', 'france', 'spain', 'australia', 'india', 'latam', 'latin america',\n  'americas', 'philippines', 'brazil', 'mexico', 'poland', 'netherlands', 'portugal',\n  'north america', 'singapore', 'toronto', 'texas', 'california', 'new york'];\nconst CORE = ['n8n','zapier','make.com','automation','no-code','ai agent','llm','prompt','ai trainer','annotation','french','video editor','video editing','motion','content creator','social media','community manager','canva','marketing assistant','virtual assistant'];\nconst MIN_SCORE = 18;\nconst MAX_RESULTS = 8;\n\nconst strip = (s) => String(s || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ')\n  .replace(/\\s+/g, ' ').trim();\n\nfunction normalise(x) {\n  if (!x || typeof x !== 'object' || x.legal) return null;\n  if (x.position) return { // Remote OK\n    source: 'Remote OK', title: x.position, company: x.company, url: x.url || x.apply_url,\n    location: x.location || '', salary: x.salary_min ? `${x.salary_min}-${x.salary_max} USD/yr` : '',\n    date: String(x.date || '').slice(0, 10), text: (x.tags || []).join(' ') + ' ' + strip(x.description) };\n  if (x.jobTitle) return { // Jobicy\n    source: 'Jobicy', title: x.jobTitle, company: x.companyName, url: x.url, location: x.jobGeo || '',\n    salary: x.annualSalaryMin ? `${x.annualSalaryMin}-${x.annualSalaryMax} ${x.salaryCurrency || ''}/yr` : '',\n    date: String(x.pubDate || '').slice(0, 10),\n    text: [].concat(x.jobType || [], x.jobIndustry || [], x.jobLevel || '').join(' ') + ' ' + strip(x.jobDescription || x.jobExcerpt) };\n  if (x.company_name) return { // Remotive\n    source: 'Remotive', title: x.title, company: x.company_name, url: x.url,\n    location: x.candidate_required_location || '', salary: x.salary || '',\n    date: String(x.publication_date || '').slice(0, 10),\n    text: (x.tags || []).join(' ') + ' ' + (x.job_type || '') + ' ' + strip(x.description) };\n  if (x.companyName && x.title) { // Himalayas\n    const geo = (x.locationRestrictions || []).join(', ');\n    return { source: 'Himalayas', title: x.title, company: x.companyName,\n      url: x.applicationLink || x.guid, location: geo || 'Worldwide',\n      salary: x.minSalary ? `${x.minSalary}-${x.maxSalary} ${x.currency || ''}` : '',\n      date: typeof x.pubDate === 'number' ? new Date(x.pubDate * 1000).toISOString().slice(0, 10) : String(x.pubDate || '').slice(0, 10),\n      text: [].concat(x.categories || [], x.seniority || [], x.employmentType || '').join(' ') + ' ' + strip(x.description || x.excerpt) };\n  }\n  return null;\n}\n\nfunction geoStatus(job) {\n  const loc = job.location.toLowerCase();\n  const body = job.text.toLowerCase();\n  if (/(côte d.ivoire|cote d.ivoire|ivory coast|africa|afrique)/.test(loc)) return 'OK';\n  const based = body.match(/([a-z]+)[- ]based (candidates|applicants|talent)/);\n  if (based && !/(africa|ivoire|worldwide|globally)/.test(based[1])) return 'NO';\n  if (/(must be based in|must reside in|only candidates (from|in))/.test(body)) return 'CHECK';\n  if (BLOCKED_GEO.some((b) => loc.includes(b))) return 'NO';\n  if (!loc || /(worldwide|anywhere|global|^remote$)/.test(loc)) return 'OK';\n  if (/(emea|international|multiple)/.test(loc)) return 'CHECK';\n  return 'NO'; // limited to one specific country or city\n}\n\nfunction score(job) {\n  const t = (job.title + ' ' + job.text).toLowerCase();\n  const title = job.title.toLowerCase();\n  let s = 0; const why = [];\n  const has = (k) => new RegExp(`(^|[^a-z])${k.replace(/[.+]/g, '\\for (const [k, w] of Object.entries(KEYWORDS)) if (t.includes(k)) { s += w; why.push(k); }')}([^a-z]|$)`).test(t);\n  for (const [k, w] of Object.entries(KEYWORDS)) if (has(k)) { s += w; why.push(k); }\n  if (!CORE.some(has)) s = Math.min(s, 0);\n  for (const k of TITLE_BONUS) if (new RegExp(`\\\\b${k}\\\\b`).test(title)) s += 4;\n  if (SENIOR.some((k) => title.includes(k))) { s -= 40; why.push('-senior'); }\n  if (SPOKEN.some((k) => t.includes(k))) { s -= 10; why.push('-calls/spoken English'); }\n  return { score: s, why: why.slice(0, 6) };\n}\n\n// 1. Flatten all API responses\nconst raw = [];\nfor (const item of $input.all()) {\n  const j = item.json;\n  if (Array.isArray(j.jobs)) raw.push(...j.jobs); else raw.push(j);\n}\n\n// 2. Normalise, deduplicate within this run, score, filter\nconst seenNow = new Set(); const offers = [];\nfor (const x of raw) {\n  const job = normalise(x);\n  if (!job || !job.title || !job.url) continue;\n  const key = (job.title + '|' + job.company).toLowerCase();\n  if (seenNow.has(key)) continue; seenNow.add(key);\n  job.geo = geoStatus(job);\n  if (job.geo === 'NO') continue;\n  Object.assign(job, score(job));\n  if (job.score < MIN_SCORE) continue;\n  delete job.text;\n  offers.push(job);\n}\noffers.sort((a, b) => b.score - a.score);\n\n// 3. Skip offers already sent in the last 30 days.\n//    Only scheduled runs mark offers as sent, so manual tests never hide offers.\nconst scheduled = typeof $execution !== 'undefined' && $execution.mode === 'trigger';\nconst store = $getWorkflowStaticData('global');\nstore.sent = store.sent || {};\nconst now = Date.now(); const MONTH = 30 * 24 * 3600 * 1000;\nfor (const [u, ts] of Object.entries(store.sent)) if (now - ts > MONTH) delete store.sent[u];\nconst fresh = offers.filter((o) => !store.sent[o.url]).slice(0, MAX_RESULTS);\nif (scheduled) for (const o of fresh) store.sent[o.url] = now;\n\n// 4. Build the Telegram message (HTML parse mode)\nconst esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst lines = [`<b>Job Scout - ${new Date().toISOString().slice(0, 10)}</b>`,\n  `${raw.length} offers scanned, ${offers.length} relevant, ${fresh.length} new`, ''];\nfresh.forEach((o, i) => {\n  lines.push(`<b>${i + 1}. ${esc(o.title)}</b> - ${esc(o.company)}`);\n  lines.push(`Score ${o.score} | Geo: ${o.geo === 'OK' ? 'open' : 'to check'} (${esc(o.location || 'not stated')})` +\n    (o.salary ? ` | ${esc(o.salary)}` : ''));\n  lines.push(`Match: ${esc(o.why.join(', '))}`);\n  lines.push(`<a href=\"${esc(o.url)}\">Open offer</a> (${esc(o.source)})`, '');\n});\nif (!fresh.length) lines.push('No new relevant offer today.');\n\nreturn [{ json: { count: fresh.length, scanned: raw.length, relevant: offers.length,\n  text: lines.join('\\n').slice(0, 4000), offers: fresh } }];\n"
+        }
+      },
+      {
+        "id": "n-if",
+        "name": "New offers?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1060,
+          180
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "id": "c1",
+                "leftValue": "={{ $json.count }}",
+                "rightValue": 0,
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "n-tg",
+        "name": "Send to Telegram",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1300,
+          160
+        ],
+        "disabled": true,
+        "parameters": {
+          "chatId": "YOUR_TELEGRAM_CHAT_ID",
+          "text": "={{ $json.text }}",
+          "additionalFields": {
+            "parse_mode": "HTML",
+            "disable_web_page_preview": true,
+            "appendAttribution": false
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Run now": {
+        "main": [
+          [
+            {
+              "node": "Remotive",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Remote OK",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Jobicy",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Himalayas",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Every day 07:00": {
+        "main": [
+          [
+            {
+              "node": "Remotive",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Remote OK",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Jobicy",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Himalayas",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Remotive": {
+        "main": [
+          [
+            {
+              "node": "Merge sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Remote OK": {
+        "main": [
+          [
+            {
+              "node": "Merge sources",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Jobicy": {
+        "main": [
+          [
+            {
+              "node": "Merge sources",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Himalayas": {
+        "main": [
+          [
+            {
+              "node": "Merge sources",
+              "type": "main",
+              "index": 3
+            }
+          ]
+        ]
+      },
+      "Merge sources": {
+        "main": [
+          [
+            {
+              "node": "Score & filter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Score & filter": {
+        "main": [
+          [
+            {
+              "node": "New offers?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "New offers?": {
+        "main": [
+          [
+            {
+              "node": "Send to Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      }
+    },
+    "pinData": {},
+    "staticData": null
+  }
+]

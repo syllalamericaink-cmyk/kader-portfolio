@@ -1,0 +1,413 @@
+{
+  "name": "KADER AI - Gestion des tâches",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        160
+      ],
+      "id": "5a4e6986-0c3c-46a3-9ad6-c297e80435f8",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "667dd080-5955-4835-bc70-4acf4600cb31",
+              "name": "=tache_id",
+              "value": "{{ 'TASK-' + $now.toMillis() }}",
+              "type": "string"
+            },
+            {
+              "id": "28f99a34-b10d-4d8c-b14b-33bcb00ed34a",
+              "name": "=projet_id",
+              "value": "{{ $json.projet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "4c71d732-126b-4642-ad00-0a726850a649",
+              "name": "=titre",
+              "value": "{{ $json.titre }}",
+              "type": "string"
+            },
+            {
+              "id": "3620fd09-4d0d-4bb0-bd15-efd8d9859709",
+              "name": "=description",
+              "value": "{{ $json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "83d90302-64bb-4737-832e-1770a173ef16",
+              "name": "=priorite",
+              "value": "{{ $json.priorite }}",
+              "type": "string"
+            },
+            {
+              "id": "6a45cefb-899f-443f-bd2a-47870664cd53",
+              "name": "statut",
+              "value": "À faire",
+              "type": "string"
+            },
+            {
+              "id": "46e46344-eb72-4b8c-93e6-02f8c9323fcf",
+              "name": "=date_echeance",
+              "value": "{{ $json.date_echeance }}",
+              "type": "string"
+            },
+            {
+              "id": "04736b69-b9d9-4ce9-ac28-d99d9a5404d0",
+              "name": "=date_creation",
+              "value": "{{ $now.toISODate() }}",
+              "type": "string"
+            },
+            {
+              "id": "1d895d89-c6d6-4a71-8085-4ecb9e43ee1e",
+              "name": "terminee_le",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "=all",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -240,
+        -128
+      ],
+      "id": "945efea2-eb11-40a0-bd42-3d7e1e1dd280",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "titre"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "projet_id"
+            },
+            {
+              "name": "priorite"
+            },
+            {
+              "name": "date_echeance"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -432,
+        -96
+      ],
+      "id": "f8a3cdbf-0f1c-4dbe-8eeb-96fd5bd5fc83",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2001287625,
+          "mode": "list",
+          "cachedResultName": "Taches"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "tache_id"
+          ],
+          "schema": [
+            {
+              "id": "tache_id",
+              "displayName": "tache_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "projet_id",
+              "displayName": "projet_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "titre",
+              "displayName": "titre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "priorite",
+              "displayName": "priorite",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "statut",
+              "displayName": "statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "date_echeance",
+              "displayName": "date_echeance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "date_creation",
+              "displayName": "date_creation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "terminee_le",
+              "displayName": "terminee_le",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -96,
+        -304
+      ],
+      "id": "27fecc4d-9407-4e82-82f4-6117fb12c91b",
+      "name": "Append or update row in sheet1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2001287625,
+          "mode": "list",
+          "cachedResultName": "Taches"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tache_id",
+              "displayName": "tache_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "projet_id",
+              "displayName": "projet_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "titre",
+              "displayName": "titre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "priorite",
+              "displayName": "priorite",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "statut",
+              "displayName": "statut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "date_echeance",
+              "displayName": "date_echeance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "date_creation",
+              "displayName": "date_creation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "terminee_le",
+              "displayName": "terminee_le",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -48,
+        -128
+      ],
+      "id": "a0f1c007-5112-43c6-8ad8-d94cb3491abe",
+      "name": "Append row in sheet"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet1": {
+      "main": [
+        []
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

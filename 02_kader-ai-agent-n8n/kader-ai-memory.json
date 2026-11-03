@@ -1,0 +1,121 @@
+{
+  "name": "KADER AI - Mémoire",
+  "nodes": [
+    {
+      "id": "7ab18cfe-d914-44a7-bdaf-833ae160c2be",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "titre"
+            },
+            {
+              "name": "categorie"
+            },
+            {
+              "name": "contenu"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "8a08a81d-deb4-4814-9b94-a93b906460da",
+      "name": "Préparer la note",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\nconst out = [];\nfor (const item of $input.all()) {\n  const titre = String(item.json.titre || 'Note technique').trim();\n  const categorie = String(item.json.categorie || 'general').trim();\n  const contenu = String(item.json.contenu || '').trim();\n  if (!contenu) throw new Error('Le champ contenu est vide : rien a enregistrer.');\n  const now = new Date();\n  const date = now.toISOString().slice(0, 10);\n  const slug = titre.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'note';\n  const fileName = date + '_' + slug + '.md';\n  const md = '# ' + titre + '\\n\\n- Categorie : ' + categorie + '\\n- Date : ' + now.toISOString() + '\\n\\n' + contenu + '\\n';\n  out.push({\n    json: { fileName, titre, categorie },\n    binary: { data: { data: Buffer.from(md, 'utf8').toString('base64'), mimeType: 'text/markdown', fileName } },\n  });\n}\nreturn out;\n"
+      }
+    },
+    {
+      "id": "0a7e537a-cd9a-4c19-951e-d52b05382362",
+      "name": "Écrire dans KADER_AI_MEMORY",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ '/knowledge_memory/' + $json.fileName }}",
+        "dataPropertyName": "data",
+        "options": {}
+      }
+    },
+    {
+      "id": "f553ca2b-1daf-4ee1-bd4f-4e9473ac6562",
+      "name": "Confirmation",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "207785ae-9196-4782-ba23-f21571815209",
+              "name": "resultat",
+              "type": "string",
+              "value": "=Note enregistrée : /knowledge_memory/{{ $('Préparer la note').item.json.fileName }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Préparer la note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer la note": {
+      "main": [
+        [
+          {
+            "node": "Écrire dans KADER_AI_MEMORY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Écrire dans KADER_AI_MEMORY": {
+      "main": [
+        [
+          {
+            "node": "Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
