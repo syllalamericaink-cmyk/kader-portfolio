@@ -2,6 +2,8 @@
 
 ![Job Scout workflow](job-scout-diagram.png)
 
+> **Now also online:** the same logic runs as a serverless app on Vercel + Neon, with offers grouped by category: [job-scout-online](https://github.com/syllalamericaink-cmyk/job-scout-online).
+
 ## What it does
 Every morning at 07:00 (Abidjan time), the workflow:
 
